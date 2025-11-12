@@ -15,10 +15,10 @@
 
 ### 1️⃣ Configure kubectl for EKS
 
-Open PowerShell and navigate to the scripts folder:
+Open PowerShell and navigate to the eks_scripts folder:
 
 ```powershell
-cd D:\rathan_reddy\Mosaik\eks_service_connection\scripts
+cd D:\rathan_reddy\Mosaik\eks_service_connection\eks_scripts
 
 # Replace with your actual cluster name and region
 .\Get-EKSCredentials.ps1 -ClusterName "your-cluster-name" -Region "us-east-1"
@@ -101,7 +101,7 @@ steps:
 
 ## 📁 Files Created
 
-In the `scripts` folder, you'll find:
+In the `eks_scripts` folder, you'll find:
 - ✅ `cluster-endpoint.txt` - Server URL for Azure DevOps
 - ✅ `cluster-ca-cert-base64.txt` - CA certificate (base64)
 - ✅ `service-account-token.txt` - Authentication token

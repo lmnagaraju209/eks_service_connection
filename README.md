@@ -1,92 +1,113 @@
-# Azure DevOps to AWS EKS Service Connection
+# Azure DevOps to Kubernetes Service Connection
 
-Complete solution for creating and managing service connections from Azure DevOps to AWS EKS clusters on **Windows**.
+Complete solution for creating and managing service connections from Azure DevOps to Kubernetes clusters on **Windows**.
+
+## Supported Platforms:
+- ✅ **Azure AKS** (Azure Kubernetes Service)
+- ✅ **AWS EKS** (Elastic Kubernetes Service)
+
+---
 
 ## 📁 Directory Structure
 
 ```
 eks_service_connection/
-├── scripts/                         # PowerShell scripts
-│   ├── Get-EKSCredentials.ps1      # Configure kubectl for EKS
-│   ├── Get-EKSServiceAccountToken.ps1  # Extract connection details
-│   ├── Test-EKSConnection.ps1      # Test cluster connectivity
-│   ├── Remove-EKSServiceAccount.ps1    # Cleanup resources
+├── aks_scripts/                         # Azure AKS PowerShell scripts
+│   ├── Get-AKSCredentials.ps1          # Configure kubectl for AKS
+│   ├── Get-AKSServiceAccountToken.ps1  # Extract AKS connection details
+│   ├── Test-AKSConnection.ps1          # Test AKS connectivity
+│   ├── Remove-AKSServiceAccount.ps1    # Cleanup AKS resources
+│   ├── Create-AKSServiceAccount.yaml   # K8s ServiceAccount manifest
+│   ├── .gitignore                      # Protects sensitive files
+│   └── README.md                       # AKS scripts documentation
+│
+├── eks_scripts/                         # AWS EKS PowerShell scripts
+│   ├── Get-EKSCredentials.ps1          # Configure kubectl for EKS
+│   ├── Get-EKSServiceAccountToken.ps1  # Extract EKS connection details
+│   ├── Test-EKSConnection.ps1          # Test EKS connectivity
+│   ├── Remove-EKSServiceAccount.ps1    # Cleanup EKS resources
 │   ├── Create-EKSServiceAccount.yaml   # K8s ServiceAccount manifest
-│   └── README.md                   # Scripts documentation
-├── examples/                        # Example files
-│   ├── eks-deployment-pipeline.yml # Example Azure Pipeline
-│   └── secure-deployment.yaml      # Example K8s deployment (non-root)
-├── QUICK-START.md                  # Fast setup guide
-├── FULL-GUIDE.md                   # Comprehensive documentation
-└── README.md                       # This file
+│   ├── .gitignore                      # Protects sensitive files
+│   └── README.md                       # EKS scripts documentation
+│
+├── examples/                            # Example files
+│   ├── eks-deployment-pipeline.yml     # Example Azure Pipeline
+│   └── secure-deployment.yaml          # Example K8s deployment (non-root)
+│
+├── AZURE-AKS-QUICK-START.md            # Azure AKS setup guide
+├── QUICK-START.md                      # AWS EKS setup guide
+├── WHICH-PLATFORM.md                   # Platform selection guide
+└── README.md                           # This file
 ```
+
+---
 
 ## 🚀 Quick Start
 
-### 1. Prerequisites
-
-- ✅ Windows 10/11 with PowerShell
-- ✅ [AWS CLI](https://aws.amazon.com/cli/) installed and configured
-- ✅ [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-windows/) installed
-- ✅ Access to AWS EKS cluster
-- ✅ Admin access to Azure DevOps project
-
-### 2. Run the Setup
+### For Azure AKS:
 
 ```powershell
-# Navigate to scripts folder
-cd D:\rathan_reddy\Mosaik\eks_service_connection\scripts
+cd D:\rathan_reddy\Mosaik\eks_service_connection\aks_scripts
 
-# Step 1: Configure kubectl for EKS
-.\Get-EKSCredentials.ps1 -ClusterName "your-cluster-name" -Region "us-east-1"
+# Step 1: Login to Azure
+az login
 
-# Step 2: Create ServiceAccount and get connection details
+# Step 2: Get AKS credentials
+.\Get-AKSCredentials.ps1 -ClusterName "your-aks-cluster" -ResourceGroup "your-rg"
+
+# Step 3: Create ServiceAccount and get token
+.\Get-AKSServiceAccountToken.ps1
+```
+
+📖 **Full Guide:** See [AZURE-AKS-QUICK-START.md](AZURE-AKS-QUICK-START.md)
+
+### For AWS EKS:
+
+```powershell
+cd D:\rathan_reddy\Mosaik\eks_service_connection\eks_scripts
+
+# Step 1: Get EKS credentials
+.\Get-EKSCredentials.ps1 -ClusterName "your-eks-cluster" -Region "us-east-1"
+
+# Step 2: Create ServiceAccount and get token
 .\Get-EKSServiceAccountToken.ps1
 ```
 
-### 3. Create Service Connection
+📖 **Full Guide:** See [QUICK-START.md](QUICK-START.md)
 
-1. Go to [Azure DevOps Service Connections](https://dev.azure.com/MetLife-Global/Elastic-Cloud/_settings/adminservices)
-2. Click "New service connection" → "Kubernetes"
-3. Select "Service Account"
-4. Copy values from generated text files:
-   - **Server URL**: `cluster-endpoint.txt`
-   - **Secret**: `service-account-token.txt`
-5. Name it: `EKS-Mosaik-Production`
-6. Click "Verify and save"
-
-### 4. Use in Pipeline
-
-```yaml
-parameters:
-- name: service_connection
-  default: 'EKS-Mosaik-Production'
-
-steps:
-  - task: Kubernetes@1
-    inputs:
-      kubernetesServiceEndpoint: '${{parameters.service_connection}}'
-      command: 'apply'
-      arguments: '-f deployment.yaml'
-```
+---
 
 ## 📚 Documentation
 
-| Document | Description |
-|----------|-------------|
-| **[QUICK-START.md](QUICK-START.md)** | 5-minute setup guide |
-| **[scripts/README.md](scripts/README.md)** | PowerShell scripts documentation |
-| **[examples/](examples/)** | Example pipelines and deployments |
+| Platform | Quick Start Guide | Prerequisites |
+|----------|------------------|---------------|
+| **Azure AKS** | [AZURE-AKS-QUICK-START.md](AZURE-AKS-QUICK-START.md) | Azure CLI, kubectl, Azure subscription |
+| **AWS EKS** | [QUICK-START.md](QUICK-START.md) | AWS CLI, kubectl, AWS account |
+
+---
 
 ## 🔐 Security Features
 
 ✅ **Non-Root Execution** - Pipelines enforce non-root user  
 ✅ **ServiceAccount Auth** - No admin kubeconfig needed  
-✅ **RBAC Configured** - Proper permissions in EKS  
+✅ **RBAC Configured** - Proper permissions in K8s  
 ✅ **Token-Based** - Secure authentication  
 ✅ **Gitignore Setup** - Prevents credential leaks  
 
+---
+
 ## 🔧 Available Scripts
+
+### Azure AKS Scripts:
+
+| Script | Purpose |
+|--------|---------|
+| `Get-AKSCredentials.ps1` | Configure kubectl for your AKS cluster |
+| `Get-AKSServiceAccountToken.ps1` | Create ServiceAccount and extract token |
+| `Test-AKSConnection.ps1` | Verify cluster connectivity |
+| `Remove-AKSServiceAccount.ps1` | Clean up ServiceAccount resources |
+
+### AWS EKS Scripts:
 
 | Script | Purpose |
 |--------|---------|
@@ -95,36 +116,57 @@ steps:
 | `Test-EKSConnection.ps1` | Verify cluster connectivity |
 | `Remove-EKSServiceAccount.ps1` | Clean up ServiceAccount resources |
 
+---
+
 ## 📝 Example Usage
 
-### Basic Setup
+### Azure AKS Example:
 ```powershell
-cd scripts
-.\Get-EKSCredentials.ps1 -ClusterName "prod-eks" -Region "us-east-1"
-.\Get-EKSServiceAccountToken.ps1
+cd aks_scripts
+
+# Get AKS credentials
+.\Get-AKSCredentials.ps1 -ClusterName "prod-aks" -ResourceGroup "rg-prod"
+
+# Create ServiceAccount
+.\Get-AKSServiceAccountToken.ps1
+
+# Test connection
+.\Test-AKSConnection.ps1
 ```
 
-### Test Connection
+### AWS EKS Example:
 ```powershell
+cd eks_scripts
+
+# Get EKS credentials
+.\Get-EKSCredentials.ps1 -ClusterName "prod-eks" -Region "us-east-1"
+
+# Create ServiceAccount
+.\Get-EKSServiceAccountToken.ps1
+
+# Test connection
 .\Test-EKSConnection.ps1
 ```
 
-### Cleanup
-```powershell
-.\Remove-EKSServiceAccount.ps1
-```
+---
 
-## 🔍 Troubleshooting
+## 🔍 Prerequisites
 
-### Common Issues
+### For Azure AKS:
+- ✅ Windows 10/11 with PowerShell
+- ✅ [Azure CLI](https://aka.ms/installazurecliwindows) installed
+- ✅ [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-windows/) installed
+- ✅ Azure subscription with AKS access
+- ✅ Admin access to Azure DevOps project
 
-| Issue | Solution |
-|-------|----------|
-| AWS CLI not found | Install from [aws.amazon.com/cli](https://aws.amazon.com/cli/) |
-| kubectl not found | Install from [kubernetes.io](https://kubernetes.io/docs/tasks/tools/install-kubectl-windows/) |
-| Cannot connect to cluster | Run `aws sts get-caller-identity` to verify AWS creds |
-| Secret not found | Wait a few seconds and try again (K8s 1.24+) |
-| Unauthorized | Check IAM permissions and aws-auth ConfigMap |
+### For AWS EKS:
+- ✅ Windows 10/11 with PowerShell
+- ✅ [AWS CLI](https://aws.amazon.com/cli/) installed and configured
+- ✅ [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl-windows/) installed
+- ✅ AWS account with EKS access
+- ✅ Admin access to Azure DevOps project
+
+---
 
 ## ⚠️ Security Notes
 
@@ -140,37 +182,63 @@ cd scripts
 Remove-Item cluster-*.txt, service-account-token.txt
 ```
 
+---
+
 ## 🎯 What You Get
 
-✓ Automated ServiceAccount creation in EKS  
+✓ Automated ServiceAccount creation in K8s  
 ✓ Secure token extraction  
 ✓ Azure DevOps service connection ready to use  
 ✓ Example pipeline with security checks  
 ✓ Example Kubernetes deployment (non-root)  
-✓ Complete PowerShell automation  
+✓ Complete PowerShell automation for Windows  
+✓ Support for both Azure AKS and AWS EKS  
+
+---
 
 ## 🔄 Workflow
 
 ```
-1. Run Get-EKSCredentials.ps1
-   ↓
-2. Run Get-EKSServiceAccountToken.ps1
-   ↓
-3. Create Service Connection in Azure DevOps
-   ↓
-4. Use in your pipelines
-   ↓
-5. Deploy securely to EKS (non-root)
+For Azure AKS:
+1. Login to Azure CLI (az login)
+2. Run Get-AKSCredentials.ps1
+3. Run Get-AKSServiceAccountToken.ps1
+4. Create Service Connection in Azure DevOps
+5. Use in your pipelines
+
+For AWS EKS:
+1. Configure AWS CLI
+2. Run Get-EKSCredentials.ps1
+3. Run Get-EKSServiceAccountToken.ps1
+4. Create Service Connection in Azure DevOps
+5. Use in your pipelines
 ```
+
+---
 
 ## 📞 Support
 
-- See `QUICK-START.md` for step-by-step guide
-- See `scripts/README.md` for detailed script documentation
-- See `examples/` for working pipeline examples
+- **Azure AKS:** See `AZURE-AKS-QUICK-START.md`
+- **AWS EKS:** See `QUICK-START.md`
+- **Scripts:** See `scripts/README.md`
+- **Examples:** See `examples/` folder
+
+---
 
 ## ✅ Success Checklist
 
+### Azure AKS:
+- [ ] Azure CLI installed and logged in
+- [ ] kubectl installed
+- [ ] Connected to AKS cluster
+- [ ] ServiceAccount created in AKS
+- [ ] Connection details extracted
+- [ ] Service connection created in Azure DevOps
+- [ ] Service connection verified
+- [ ] Example pipeline tested
+- [ ] Sensitive files deleted locally
+
+### AWS EKS:
 - [ ] AWS CLI installed and configured
 - [ ] kubectl installed
 - [ ] Connected to EKS cluster
@@ -183,4 +251,7 @@ Remove-Item cluster-*.txt, service-account-token.txt
 
 ---
 
-**Ready to start?** Open `QUICK-START.md` and follow the 5-minute guide!
+**Ready to start?**
+
+- For Azure AKS: Open `AZURE-AKS-QUICK-START.md`
+- For AWS EKS: Open `QUICK-START.md`
