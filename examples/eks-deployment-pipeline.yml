@@ -1,0 +1,102 @@
+# Example: Azure DevOps Pipeline to Deploy to AWS EKS
+# This pipeline demonstrates how to use the EKS service connection
+
+parameters:
+- name: eks_service_connection
+  type: string
+  displayName: 'EKS Service Connection Name'
+  default: 'EKS-Mosaik-Production'
+- name: namespace
+  type: string
+  displayName: 'Kubernetes Namespace'
+  default: 'default'
+- name: deployment_file
+  type: string
+  displayName: 'Deployment YAML file'
+  default: 'deployment.yaml'
+
+trigger: none
+
+pool:
+  name: Auto-Scaling-Agents-Linux
+
+stages:
+  - stage: Validate
+    displayName: 'Validate EKS Connection'
+    jobs:
+      - job: validate_connection
+        displayName: 'Test EKS Connection'
+        steps:
+          - script: |
+              if [ "$(id -u)" -eq 0 ]; then
+                echo "##vso[task.logissue type=error]Pipeline must not run as root user for security compliance"
+                exit 1
+              fi
+              echo "Running as user: $(whoami) (UID: $(id -u))"
+            displayName: 'Verify non-root execution'
+          
+          - task: Kubernetes@1
+            displayName: 'Get Cluster Info'
+            inputs:
+              connectionType: 'Kubernetes Service Connection'
+              kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
+              command: 'cluster-info'
+          
+          - task: Kubernetes@1
+            displayName: 'List Nodes'
+            inputs:
+              connectionType: 'Kubernetes Service Connection'
+              kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
+              command: 'get'
+              arguments: 'nodes'
+          
+          - task: Kubernetes@1
+            displayName: 'Check Namespace'
+            inputs:
+              connectionType: 'Kubernetes Service Connection'
+              kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
+              command: 'get'
+              arguments: 'namespace ${{parameters.namespace}}'
+            continueOnError: true
+
+  - stage: Deploy
+    displayName: 'Deploy to EKS'
+    dependsOn: Validate
+    condition: succeeded()
+    jobs:
+      - deployment: deploy_to_eks
+        displayName: 'Deploy Application'
+        environment: 'Production-EKS'
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                
+                - task: Kubernetes@1
+                  displayName: 'Apply Kubernetes Manifests'
+                  inputs:
+                    connectionType: 'Kubernetes Service Connection'
+                    kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
+                    namespace: '${{parameters.namespace}}'
+                    command: 'apply'
+                    arguments: '-f ${{parameters.deployment_file}}'
+                
+                - task: Kubernetes@1
+                  displayName: 'Get Deployment Status'
+                  inputs:
+                    connectionType: 'Kubernetes Service Connection'
+                    kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
+                    namespace: '${{parameters.namespace}}'
+                    command: 'get'
+                    arguments: 'deployments'
+                
+                - task: Kubernetes@1
+                  displayName: 'Get Pods'
+                  inputs:
+                    connectionType: 'Kubernetes Service Connection'
+                    kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
+                    namespace: '${{parameters.namespace}}'
+                    command: 'get'
+                    arguments: 'pods'
+

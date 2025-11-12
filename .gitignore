@@ -1,0 +1,27 @@
+# EKS Service Connection - Sensitive files
+cluster-endpoint.txt
+cluster-ca-cert-base64.txt
+service-account-token.txt
+cluster-ca.crt
+
+# AWS credentials
+*.pem
+*.key
+
+# Azure DevOps
+.taskkey
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
