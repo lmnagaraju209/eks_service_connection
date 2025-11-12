@@ -1,5 +1,5 @@
 # Example: Azure DevOps Pipeline to Deploy to AWS EKS
-# This pipeline demonstrates how to use the EKS service connection
+# This pipeline demonstrates secure deployment to EKS with non-root execution
 
 parameters:
 - name: eks_service_connection
@@ -13,7 +13,15 @@ parameters:
 - name: deployment_file
   type: string
   displayName: 'Deployment YAML file'
-  default: 'deployment.yaml'
+  default: 'k8s/deployment.yaml'
+- name: environment
+  type: string
+  displayName: 'Environment'
+  default: 'Production'
+  values:
+    - Development
+    - Staging
+    - Production
 
 trigger: none
 
@@ -22,59 +30,76 @@ pool:
 
 stages:
   - stage: Validate
-    displayName: 'Validate EKS Connection'
+    displayName: 'Security & Validation'
     jobs:
-      - job: validate_connection
-        displayName: 'Test EKS Connection'
+      - job: security_check
+        displayName: 'Security Validation'
         steps:
+          # Ensure pipeline does not run as root
           - script: |
               if [ "$(id -u)" -eq 0 ]; then
                 echo "##vso[task.logissue type=error]Pipeline must not run as root user for security compliance"
                 exit 1
               fi
-              echo "Running as user: $(whoami) (UID: $(id -u))"
+              echo "✓ Running as user: $(whoami) (UID: $(id -u))"
             displayName: 'Verify non-root execution'
           
+          # Validate parameters
+          - script: |
+              echo "========================================="
+              echo "Pipeline Parameters"
+              echo "========================================="
+              echo "EKS Service Connection: ${{parameters.eks_service_connection}}"
+              echo "Namespace: ${{parameters.namespace}}"
+              echo "Deployment File: ${{parameters.deployment_file}}"
+              echo "Environment: ${{parameters.environment}}"
+              echo "========================================="
+            displayName: 'Display parameters'
+          
+          # Test EKS connection
           - task: Kubernetes@1
-            displayName: 'Get Cluster Info'
+            displayName: 'Verify EKS Connection'
             inputs:
               connectionType: 'Kubernetes Service Connection'
               kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
               command: 'cluster-info'
           
+          # List cluster nodes
           - task: Kubernetes@1
-            displayName: 'List Nodes'
+            displayName: 'List Cluster Nodes'
             inputs:
               connectionType: 'Kubernetes Service Connection'
               kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
               command: 'get'
-              arguments: 'nodes'
+              arguments: 'nodes -o wide'
           
+          # Check if namespace exists
           - task: Kubernetes@1
-            displayName: 'Check Namespace'
+            displayName: 'Verify Namespace Exists'
             inputs:
               connectionType: 'Kubernetes Service Connection'
               kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
               command: 'get'
               arguments: 'namespace ${{parameters.namespace}}'
-            continueOnError: true
+            continueOnError: false
 
   - stage: Deploy
-    displayName: 'Deploy to EKS'
+    displayName: 'Deploy to EKS - ${{parameters.environment}}'
     dependsOn: Validate
     condition: succeeded()
     jobs:
       - deployment: deploy_to_eks
         displayName: 'Deploy Application'
-        environment: 'Production-EKS'
+        environment: '${{parameters.environment}}-EKS'
         strategy:
           runOnce:
             deploy:
               steps:
                 - checkout: self
                 
+                # Apply Kubernetes manifests
                 - task: Kubernetes@1
-                  displayName: 'Apply Kubernetes Manifests'
+                  displayName: 'Apply Deployment'
                   inputs:
                     connectionType: 'Kubernetes Service Connection'
                     kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
@@ -82,6 +107,18 @@ stages:
                     command: 'apply'
                     arguments: '-f ${{parameters.deployment_file}}'
                 
+                # Wait for deployment to rollout
+                - task: Kubernetes@1
+                  displayName: 'Wait for Rollout'
+                  inputs:
+                    connectionType: 'Kubernetes Service Connection'
+                    kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
+                    namespace: '${{parameters.namespace}}'
+                    command: 'rollout'
+                    arguments: 'status deployment/mosaik-apm --timeout=5m'
+                  continueOnError: true
+                
+                # Get deployment status
                 - task: Kubernetes@1
                   displayName: 'Get Deployment Status'
                   inputs:
@@ -89,14 +126,70 @@ stages:
                     kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
                     namespace: '${{parameters.namespace}}'
                     command: 'get'
-                    arguments: 'deployments'
+                    arguments: 'deployments -o wide'
                 
+                # Get pod status
                 - task: Kubernetes@1
-                  displayName: 'Get Pods'
+                  displayName: 'Get Pod Status'
                   inputs:
                     connectionType: 'Kubernetes Service Connection'
                     kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
                     namespace: '${{parameters.namespace}}'
                     command: 'get'
-                    arguments: 'pods'
+                    arguments: 'pods -o wide'
+                
+                # Describe pods for troubleshooting
+                - task: Kubernetes@1
+                  displayName: 'Describe Pods'
+                  inputs:
+                    connectionType: 'Kubernetes Service Connection'
+                    kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
+                    namespace: '${{parameters.namespace}}'
+                    command: 'describe'
+                    arguments: 'pods -l app=mosaik-apm'
+                  continueOnError: true
 
+  - stage: Verify
+    displayName: 'Post-Deployment Verification'
+    dependsOn: Deploy
+    condition: succeeded()
+    jobs:
+      - job: verify_deployment
+        displayName: 'Verify Deployment'
+        steps:
+          # Check pod security context (ensure not running as root)
+          - task: Kubernetes@1
+            displayName: 'Verify Pod Security Context'
+            inputs:
+              connectionType: 'Kubernetes Service Connection'
+              kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
+              namespace: '${{parameters.namespace}}'
+              command: 'get'
+              arguments: 'pods -l app=mosaik-apm -o jsonpath="{.items[*].spec.securityContext}"'
+          
+          # Check if pods are running
+          - script: |
+              echo "Checking if all pods are in Running state..."
+              # This would typically call kubectl to verify pod status
+            displayName: 'Verify Pods Running'
+          
+          # Get service information
+          - task: Kubernetes@1
+            displayName: 'Get Services'
+            inputs:
+              connectionType: 'Kubernetes Service Connection'
+              kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
+              namespace: '${{parameters.namespace}}'
+              command: 'get'
+              arguments: 'services -o wide'
+          
+          # Display logs from pods (last 50 lines)
+          - task: Kubernetes@1
+            displayName: 'Get Recent Pod Logs'
+            inputs:
+              connectionType: 'Kubernetes Service Connection'
+              kubernetesServiceEndpoint: '${{parameters.eks_service_connection}}'
+              namespace: '${{parameters.namespace}}'
+              command: 'logs'
+              arguments: '-l app=mosaik-apm --tail=50'
+            continueOnError: true

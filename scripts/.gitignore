@@ -1,0 +1,6 @@
+# Sensitive files - DO NOT COMMIT
+cluster-endpoint.txt
+cluster-ca-cert-base64.txt
+service-account-token.txt
+cluster-ca.crt
+
