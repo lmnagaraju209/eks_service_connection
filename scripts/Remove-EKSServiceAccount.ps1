@@ -33,9 +33,9 @@ if (Test-Path "Create-EKSServiceAccount.yaml") {
     kubectl delete -f Create-EKSServiceAccount.yaml
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Resources removed successfully" -ForegroundColor Green
+        Write-Host "[SUCCESS] Resources removed successfully" -ForegroundColor Green
     } else {
-        Write-Host "⚠ Some resources may not exist or failed to delete" -ForegroundColor Yellow
+        Write-Host "[WARN] Some resources may not exist or failed to delete" -ForegroundColor Yellow
     }
 } else {
     Write-Host "Removing resources individually..." -ForegroundColor Yellow
@@ -49,7 +49,7 @@ if (Test-Path "Create-EKSServiceAccount.yaml") {
     # Delete ServiceAccount
     kubectl delete serviceaccount azdo-service-account -n $Namespace 2>&1 | Out-Null
     
-    Write-Host "✓ Cleanup completed" -ForegroundColor Green
+    Write-Host "[SUCCESS] Cleanup completed" -ForegroundColor Green
 }
 
 Write-Host ""

@@ -44,15 +44,15 @@ Write-Host ""
 Write-Host "5. Checking ServiceAccount (if exists)..." -ForegroundColor Yellow
 $sa = kubectl get serviceaccount azdo-service-account -n default 2>&1
 if ($LASTEXITCODE -eq 0) {
-    Write-Host "✓ ServiceAccount 'azdo-service-account' exists" -ForegroundColor Green
+    Write-Host "[SUCCESS] ServiceAccount 'azdo-service-account' exists" -ForegroundColor Green
     kubectl get serviceaccount azdo-service-account -n default
 } else {
-    Write-Host "⚠ ServiceAccount 'azdo-service-account' not found" -ForegroundColor Yellow
+    Write-Host "[WARN] ServiceAccount 'azdo-service-account' not found" -ForegroundColor Yellow
     Write-Host "  Run: .\Get-EKSServiceAccountToken.ps1" -ForegroundColor Gray
 }
 
 Write-Host ""
 Write-Host "=========================================" -ForegroundColor Green
-Write-Host "✓ Connection test completed successfully!" -ForegroundColor Green
+Write-Host "[SUCCESS] Connection test completed successfully!" -ForegroundColor Green
 Write-Host "=========================================" -ForegroundColor Green
 

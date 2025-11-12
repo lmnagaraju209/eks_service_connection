@@ -36,7 +36,7 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-Write-Host "✓ Kubeconfig updated successfully" -ForegroundColor Green
+Write-Host "[SUCCESS] Kubeconfig updated successfully" -ForegroundColor Green
 Write-Host ""
 
 # Get cluster endpoint
@@ -56,7 +56,7 @@ $clusterCA = aws eks describe-cluster --name $ClusterName --region $Region --que
 
 if ($LASTEXITCODE -eq 0) {
     $clusterCA | Out-File -FilePath "cluster-ca.crt" -Encoding UTF8 -NoNewline
-    Write-Host "✓ CA Certificate saved to: cluster-ca.crt" -ForegroundColor Green
+    Write-Host "[SUCCESS] CA Certificate saved to: cluster-ca.crt" -ForegroundColor Green
 } else {
     Write-Host "ERROR: Failed to get CA certificate" -ForegroundColor Red
     exit 1
@@ -79,7 +79,7 @@ kubectl cluster-info
 
 if ($LASTEXITCODE -eq 0) {
     Write-Host ""
-    Write-Host "✓ Successfully connected to EKS cluster!" -ForegroundColor Green
+    Write-Host "[SUCCESS] Successfully connected to EKS cluster!" -ForegroundColor Green
     Write-Host ""
     Write-Host "NEXT STEP:" -ForegroundColor Yellow
     Write-Host "Run: .\Get-EKSServiceAccountToken.ps1" -ForegroundColor White

@@ -27,7 +27,7 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "Run: .\Get-EKSCredentials.ps1 -ClusterName <name> -Region <region>" -ForegroundColor Yellow
     exit 1
 }
-Write-Host "✓ Connected to cluster" -ForegroundColor Green
+Write-Host "[SUCCESS] Connected to cluster" -ForegroundColor Green
 Write-Host ""
 
 # Check if ServiceAccount YAML file exists
@@ -45,7 +45,7 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Failed to create ServiceAccount" -ForegroundColor Red
     exit 1
 }
-Write-Host "✓ ServiceAccount created successfully" -ForegroundColor Green
+Write-Host "[SUCCESS] ServiceAccount created successfully" -ForegroundColor Green
 Write-Host ""
 
 # Wait for secret to be created
@@ -59,7 +59,7 @@ if ($LASTEXITCODE -ne 0) {
     Write-Host "The secret may not have been created automatically (Kubernetes 1.24+)" -ForegroundColor Yellow
     exit 1
 }
-Write-Host "✓ Secret found" -ForegroundColor Green
+Write-Host "[SUCCESS] Secret found" -ForegroundColor Green
 Write-Host ""
 
 # Get the token
@@ -72,7 +72,7 @@ if (-not $tokenBase64) {
 
 try {
     $decodedToken = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($tokenBase64))
-    Write-Host "✓ Token extracted" -ForegroundColor Green
+    Write-Host "[SUCCESS] Token extracted" -ForegroundColor Green
 } catch {
     Write-Host "ERROR: Failed to decode token" -ForegroundColor Red
     Write-Host $_.Exception.Message -ForegroundColor Red
@@ -86,7 +86,7 @@ if (-not $caCert) {
     Write-Host "ERROR: Failed to get CA certificate" -ForegroundColor Red
     exit 1
 }
-Write-Host "✓ CA certificate extracted" -ForegroundColor Green
+Write-Host "[SUCCESS] CA certificate extracted" -ForegroundColor Green
 
 # Get cluster endpoint
 Write-Host "Getting cluster endpoint..." -ForegroundColor Yellow
@@ -95,7 +95,7 @@ if (-not $clusterEndpoint) {
     Write-Host "ERROR: Failed to get cluster endpoint" -ForegroundColor Red
     exit 1
 }
-Write-Host "✓ Cluster endpoint retrieved" -ForegroundColor Green
+Write-Host "[SUCCESS] Cluster endpoint retrieved" -ForegroundColor Green
 Write-Host ""
 
 # Display results
@@ -125,9 +125,9 @@ try {
     
     Write-Host "=========================================" -ForegroundColor Green
     Write-Host "Files Saved to Current Directory:" -ForegroundColor Green
-    Write-Host "  ✓ cluster-endpoint.txt" -ForegroundColor Cyan
-    Write-Host "  ✓ cluster-ca-cert-base64.txt" -ForegroundColor Cyan
-    Write-Host "  ✓ service-account-token.txt" -ForegroundColor Cyan
+    Write-Host "  [OK] cluster-endpoint.txt" -ForegroundColor Cyan
+    Write-Host "  [OK] cluster-ca-cert-base64.txt" -ForegroundColor Cyan
+    Write-Host "  [OK] service-account-token.txt" -ForegroundColor Cyan
     Write-Host "=========================================" -ForegroundColor Green
     Write-Host ""
 } catch {
